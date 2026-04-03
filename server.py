@@ -2,13 +2,20 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
-# OPTIONAL: Twilio (safe if env vars exist)
-try:
-    from twilio.rest import Client
+# =========================================
+# ✅ TWILIO (RUNTIME SAFE — FIXED)
+# =========================================
+TWILIO_ENABLED = all(
+    [
+        os.environ.get("TWILIO_ACCOUNT_SID"),
+        os.environ.get("TWILIO_AUTH_TOKEN"),
+        os.environ.get("TWILIO_NUMBER"),
+        os.environ.get("YOUR_PHONE_NUMBER"),
+    ]
+)
 
-    TWILIO_ENABLED = True
-except:
-    TWILIO_ENABLED = False
+if TWILIO_ENABLED:
+    from twilio.rest import Client
 
 
 app = Flask(__name__)
@@ -119,6 +126,8 @@ ZIP: {data.get('zip')}
 
             except Exception as sms_error:
                 print("⚠️ SMS ERROR:", str(sms_error))
+        else:
+            print("ℹ️ Twilio not configured — skipping SMS")
 
         # =========================
         # RESPONSE
