@@ -10,14 +10,14 @@ from core.db import get_connection
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# Example fallback for local testing
 if not stripe.api_key:
-    stripe.api_key = "sk_test_placeholder"
+    raise Exception("STRIPE_SECRET_KEY not set in environment")
 
 
 # =========================================================
 # GET OR CREATE STRIPE CUSTOMER
 # =========================================================
+
 
 def get_or_create_customer(username: str, business_name: str):
 
@@ -31,7 +31,7 @@ def get_or_create_customer(username: str, business_name: str):
         FROM stripe_customers
         WHERE username = ?
         """,
-        (username,)
+        (username,),
     )
 
     row = cur.fetchone()
@@ -42,10 +42,7 @@ def get_or_create_customer(username: str, business_name: str):
 
     # Create Stripe customer
     customer = stripe.Customer.create(
-        name=business_name,
-        metadata={
-            "username": username
-        }
+        name=business_name, metadata={"username": username}
     )
 
     customer_id = customer.id
@@ -56,11 +53,7 @@ def get_or_create_customer(username: str, business_name: str):
         INSERT INTO stripe_customers (id, username, stripe_customer_id)
         VALUES (?, ?, ?)
         """,
-        (
-            str(uuid.uuid4()),
-            username,
-            customer_id
-        )
+        (str(uuid.uuid4()), username, customer_id),
     )
 
     conn.commit()
@@ -73,25 +66,20 @@ def get_or_create_customer(username: str, business_name: str):
 # CREATE CHECKOUT SESSION
 # =========================================================
 
+
 def create_checkout_session(customer_id: str, price_id: str):
 
     session = stripe.checkout.Session.create(
-
         customer=customer_id,
-
         payment_method_types=["card"],
-
         mode="subscription",
-
         line_items=[
             {
                 "price": price_id,
                 "quantity": 1,
             }
         ],
-
         success_url="http://localhost:8501?success=true",
-
         cancel_url="http://localhost:8501?cancelled=true",
     )
 
@@ -101,6 +89,7 @@ def create_checkout_session(customer_id: str, price_id: str):
 # =========================================================
 # UPDATE SUBSCRIPTION STATUS
 # =========================================================
+
 
 def update_subscription(customer_id: str, status: str, plan: str):
 
@@ -113,11 +102,7 @@ def update_subscription(customer_id: str, status: str, plan: str):
         SET subscription_status = ?, plan = ?
         WHERE stripe_customer_id = ?
         """,
-        (
-            status,
-            plan,
-            customer_id
-        )
+        (status, plan, customer_id),
     )
 
     conn.commit()
