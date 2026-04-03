@@ -1,0 +1,4 @@
+-- 001_init.sql
+-- Baseline migration
+-- Existing schema approved
+-- NO CHANGES

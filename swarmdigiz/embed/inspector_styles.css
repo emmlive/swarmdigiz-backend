@@ -1,0 +1,22 @@
+.swarm-box {
+border:1px solid #ddd;
+padding:20px;
+border-radius:8px;
+font-family:Arial;
+max-width:400px;
+}
+
+.swarm-box input,
+.swarm-box select {
+width:100%;
+padding:8px;
+margin-bottom:10px;
+}
+
+.swarm-box button {
+background:#000;
+color:#fff;
+padding:10px;
+width:100%;
+cursor:pointer;
+}

@@ -1,0 +1,3 @@
+-- 003_credit_timestamp.sql
+-- already applied during development
+-- intentionally left blank to maintain migration order

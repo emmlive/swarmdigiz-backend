@@ -1,0 +1,10 @@
+streamlit
+stripe
+pandas
+plotly
+numpy
+scipy
+bcrypt
+requests
+python-dotenv
+Pillow

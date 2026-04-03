@@ -1,0 +1,6 @@
+streamlit
+streamlit-authenticator
+stripe
+pandas
+python-docx
+fpdf
