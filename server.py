@@ -2,10 +2,21 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
+# OPTIONAL: Twilio (safe if env vars exist)
+try:
+    from twilio.rest import Client
+
+    TWILIO_ENABLED = True
+except:
+    TWILIO_ENABLED = False
+
+
 app = Flask(__name__)
 
-# ✅ Enable CORS
-CORS(app)
+# =========================================
+# ✅ CORS (PRODUCTION SAFE)
+# =========================================
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 
 # =========================================
@@ -17,12 +28,14 @@ def home():
 
 
 # =========================================
-# INSPECTION ENDPOINT (FIXED)
+# INSPECTION ENDPOINT
 # =========================================
 @app.route("/api/inspection", methods=["POST"])
 def inspection():
     try:
-        print("\n--- NEW REQUEST ---")
+        print("\n=========================")
+        print("🔥 NEW REQUEST")
+        print("=========================")
         print("Content-Type:", request.content_type)
 
         # =========================
@@ -36,7 +49,7 @@ def inspection():
             file = None
 
         print("DATA:", data)
-        print("FILE:", file)
+        print("FILE:", file.filename if file else "No file")
 
         # =========================
         # VALIDATION
@@ -62,10 +75,7 @@ def inspection():
         base = base_prices.get(service, 100)
         multiplier = size_multiplier.get(size, 1)
 
-        # ✅ keep cents for backend logic
         quote_cents = int(base * multiplier * 100)
-
-        # ✅ convert for frontend display
         quote_dollars = round(quote_cents / 100, 2)
 
         # =========================
@@ -79,12 +89,44 @@ def inspection():
             tier = "cold"
 
         # =========================
-        # RESPONSE (STANDARDIZED)
+        # ✅ OPTIONAL: SEND SMS (TWILIO)
+        # =========================
+        if TWILIO_ENABLED:
+            try:
+                client = Client(
+                    os.environ.get("TWILIO_ACCOUNT_SID"),
+                    os.environ.get("TWILIO_AUTH_TOKEN"),
+                )
+
+                message = f"""
+New Lead 🚀
+Service: {service}
+Size: {size}
+Quote: ${quote_dollars}
+
+Name: {data.get('name')}
+Phone: {data.get('phone')}
+ZIP: {data.get('zip')}
+"""
+
+                client.messages.create(
+                    body=message,
+                    from_=os.environ.get("TWILIO_NUMBER"),
+                    to=os.environ.get("YOUR_PHONE_NUMBER"),
+                )
+
+                print("✅ SMS SENT")
+
+            except Exception as sms_error:
+                print("⚠️ SMS ERROR:", str(sms_error))
+
+        # =========================
+        # RESPONSE
         # =========================
         response = {
             "success": True,
-            "estimated_quote": quote_dollars,  # ✅ PRIMARY FIELD
-            "quote": quote_dollars,  # ✅ fallback compatibility
+            "estimated_quote": quote_dollars,
+            "quote": quote_dollars,
             "lead_tier": tier,
         }
 
@@ -93,7 +135,7 @@ def inspection():
         return jsonify(response), 200
 
     except Exception as e:
-        print("ERROR:", str(e))
+        print("❌ SERVER ERROR:", str(e))
 
         return jsonify({"success": False, "error": "Server error"}), 500
 
@@ -103,4 +145,5 @@ def inspection():
 # =========================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    print(f"🚀 Starting server on port {port}")
     app.run(host="0.0.0.0", port=port)
