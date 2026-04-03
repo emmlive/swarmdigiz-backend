@@ -8,3 +8,5 @@ bcrypt
 requests
 python-dotenv
 Pillow
+flask
+gunicorn
