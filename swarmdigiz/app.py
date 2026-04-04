@@ -31,13 +31,12 @@ except Exception as e:
 
 import streamlit as st
 
-from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from werkzeug.serving import run_simple
+# ❌ REMOVED WERKZEUG (CAUSE OF CRASH)
 
 from core.business_service import get_or_create_business
 from core.subscription_guard import verify_subscription
 
-# 🔥 FLASK API
+# 🔥 FLASK API (still supported)
 from api.inspection_api import inspection_bp
 from flask import Flask
 
@@ -64,7 +63,7 @@ from ui.admin_dashboard_page import render_admin_dashboard
 
 
 # =========================================================
-# 🔥 FLASK API APP (EMBEDDED)
+# 🔥 FLASK API APP (OPTIONAL / SAFE)
 # =========================================================
 
 flask_app = Flask(__name__)
