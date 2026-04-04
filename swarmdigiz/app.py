@@ -1,24 +1,28 @@
 ﻿# -*- coding: utf-8 -*-
 
 # =========================================================
-# 🔥 CRITICAL — DB INIT MUST RUN FIRST (NO IMPORT DEPENDENCIES)
+# 🔥 SAFE BOOT — NEVER CRASH ON STARTUP
 # =========================================================
 
 import os
 import sys
 import subprocess
 
-from core.db import initialize_database, verify_schema_version
-
 print("🚀 Booting SwarmDigiz...")
 
-# Ensure schema version
-verify_schema_version()
+# ---------------------------------------------------------
+# SAFE DB INIT (NO CRASH)
+# ---------------------------------------------------------
+try:
+    from core.db import initialize_database, verify_schema_version
 
-# Ensure tables exist BEFORE anything else touches DB
-initialize_database()
+    verify_schema_version()
+    initialize_database()
 
-print("✅ Database initialized successfully")
+    print("✅ Database initialized successfully")
+
+except Exception as e:
+    print(f"❌ DB INIT FAILED: {e}")
 
 
 # =========================================================
@@ -33,7 +37,7 @@ from werkzeug.serving import run_simple
 from core.business_service import get_or_create_business
 from core.subscription_guard import verify_subscription
 
-# 🔥 IMPORT YOUR FLASK API
+# 🔥 FLASK API
 from api.inspection_api import inspection_bp
 from flask import Flask
 
@@ -68,18 +72,19 @@ flask_app.register_blueprint(inspection_bp)
 
 
 # =========================================================
-# DATABASE MIGRATIONS (RUN AFTER INIT — SAFE)
+# SAFE DB MIGRATIONS (NO CRASH)
 # =========================================================
 
 
 def run_db_migrations():
     try:
-        env = os.environ.copy()
-        env["ALLOW_SCHEMA_MUTATION"] = "true"
+        migrate_path = os.path.join(os.getcwd(), "db", "migrate.py")
 
-        subprocess.run([sys.executable, "db/migrate.py"], check=True, env=env)
-
-        print("✅ Database migrations applied")
+        if os.path.exists(migrate_path):
+            subprocess.run([sys.executable, migrate_path], check=True)
+            print("✅ Database migrations applied")
+        else:
+            print("⚠️ migrate.py not found, skipping")
 
     except Exception as e:
         print(f"⚠️ Migration runner skipped or failed: {e}")
@@ -89,7 +94,7 @@ run_db_migrations()
 
 
 # =========================================================
-# STREAMLIT BOOT
+# STREAMLIT CONFIG
 # =========================================================
 
 st.set_page_config(page_title=APP_NAME, layout="wide")
@@ -99,7 +104,7 @@ init_session()
 
 
 # =========================================================
-# 🔥 NEW — GLOBAL NAV STATE (BUTTON FIX)
+# 🔥 GLOBAL NAV STATE
 # =========================================================
 
 if "nav" not in st.session_state:
@@ -119,11 +124,13 @@ username = resolve_username()
 # ---------------------------------------------------------
 
 if not embed_mode:
-
-    if not verify_subscription(username):
-        st.warning("⚠️ Active subscription required to access SwarmDigiz")
-        render_billing_page()
-        st.stop()
+    try:
+        if not verify_subscription(username):
+            st.warning("⚠️ Active subscription required to access SwarmDigiz")
+            render_billing_page()
+            st.stop()
+    except Exception as e:
+        print(f"⚠️ Subscription check failed: {e}")
 
 
 # ---------------------------------------------------------
@@ -133,9 +140,12 @@ if not embed_mode:
 if "business_name" not in st.session_state:
     st.session_state["business_name"] = "Swarm Business"
 
-business_id = get_or_create_business(username, st.session_state["business_name"])
-
-st.session_state["business_id"] = business_id
+try:
+    business_id = get_or_create_business(username, st.session_state["business_name"])
+    st.session_state["business_id"] = business_id
+except Exception as e:
+    print(f"⚠️ Business init failed: {e}")
+    business_id = None
 
 
 # =========================================================
@@ -150,7 +160,7 @@ else:
 
 
 # =========================================================
-# 🔥 BUTTON NAV OVERRIDE (CRITICAL FIX)
+# 🔥 BUTTON NAV OVERRIDE
 # =========================================================
 
 nav = st.session_state.get("nav")
